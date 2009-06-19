@@ -37,6 +37,9 @@ namespace net.kvdb.webdav
 
         #region WebDAV connection parameters
         private String server;
+        /// <summary>
+        /// Specify the WebDAV hostname (required).
+        /// </summary>
         public String Server
         {
             get { return server; }
@@ -47,6 +50,9 @@ namespace net.kvdb.webdav
             }
         }
         private String basePath = "/";
+        /// <summary>
+        /// Specify the path of a WebDAV directory to use as 'root' (default: /)
+        /// </summary>
         public String BasePath
         {
             get { return basePath; }
@@ -57,22 +63,37 @@ namespace net.kvdb.webdav
             }
         }
         private int port = 80;
+        /// <summary>
+        /// Specify an port (default: 80)
+        /// </summary>
         public int Port
         {
             get { return port; }
             set { port = value; }
         }
         private String user;
+        /// <summary>
+        /// Specify a username (optional)
+        /// </summary>
         public String User
         {
             get { return user; }
             set { user = value; }
         }
         private String pass;
+        /// <summary>
+        /// Specify a password (optional)
+        /// </summary>
         public String Pass
         {
             get { return pass; }
             set { pass = value; }
+        }
+        private String domain = null;
+        public String Domain
+        {
+            get { return domain; }
+            set { domain = value; }
         }
 
         Uri getServerUrl(String path, Boolean appendTrailingSlash)
@@ -87,7 +108,6 @@ namespace net.kvdb.webdav
             return new Uri(server + ":" + port + completePath);
         }
         #endregion
-
 
         #region WebDAV operations
         /// <summary>
@@ -329,7 +349,6 @@ namespace net.kvdb.webdav
         }
         #endregion
 
-
         #region Server communication
 
         /// <summary>
@@ -364,7 +383,15 @@ namespace net.kvdb.webdav
             // The server may use authentication
             if (user != null && pass != null)
             {
-                NetworkCredential networkCredential = new NetworkCredential(user, pass);
+                NetworkCredential networkCredential;
+                if (domain != null)
+                {
+                    networkCredential = new NetworkCredential(user, pass, domain);
+                }
+                else
+                {
+                    networkCredential = new NetworkCredential(user, pass);
+                }
                 httpWebRequest.Credentials = networkCredential;
                 // Send authentication along with first request.
                 httpWebRequest.PreAuthenticate = true;

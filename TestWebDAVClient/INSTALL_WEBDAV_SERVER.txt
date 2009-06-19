@@ -40,7 +40,6 @@ NameVirtualHost *
     AuthUserFile /var/www/digest.dav
     Require valid-user
   </Location>
-
 </Virtualhost>
 EOF
 
@@ -71,5 +70,4 @@ cadaver http://localhost/digestshare/
 
 sudo crontab -u root -e
 # Clean test webdav share every 5 minutes
-*/5 * * * * find /var/www/webdav/* -mmin 5 -exec rm {} \;
-
+*/5 * * * * find /var/www/webdav/* -mmin +5 -exec rm {} \;

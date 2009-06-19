@@ -15,20 +15,38 @@ namespace TestWebDAVClient
             Debug.Listeners.Add(new ConsoleTraceListener());
             Boolean result;
 
-            // A public WebDAV server for testing purposes. (All tests pass)
-            // http://www.maxum.com/Rumpus/TestRumpus.html
+            // A private mod_dav WebDAV server running on Apache (All tests pass)
+            // No authentication required
             WebDAVClient c = new WebDAVClient();
-            c.Server = "http://www.testrumpus.com/";
-            c.User = "moe";
-            c.Pass = "moe";
+            c.Server = "http://dev.kvdb.net";
+            c.BasePath = "/openshare";
             result = RunWebDAVTests(c);
 
             // A private mod_dav WebDAV server running on Apache (All tests pass)
+            // Basic authentication required
             c = new WebDAVClient();
-            c.User = "xx";
-            c.Pass = "xx";
-            c.Server = "http://www.xx.com";
-            c.BasePath = "/webdav/";
+            c.User = "admin";
+            c.Pass = "webdavclientadmin";
+            c.Server = "http://dev.kvdb.net";
+            c.BasePath = "/basicshare";
+            result = result && RunWebDAVTests(c);
+
+            // A private mod_dav WebDAV server running on Apache (All tests pass)
+            // Digest authentication required
+            c = new WebDAVClient();
+            c.User = "admin";
+            c.Pass = "webdavclientadmin";
+            c.Domain = "webdav";
+            c.Server = "http://dev.kvdb.net";
+            c.BasePath = "/digestshare";
+            result = result && RunWebDAVTests(c);
+            
+            // A public WebDAV server for testing purposes. (All tests pass)
+            // http://www.maxum.com/Rumpus/TestRumpus.html
+            c = new WebDAVClient();
+            c.Server = "http://www.testrumpus.com/";
+            c.User = "moe";
+            c.Pass = "moe";
             result = result && RunWebDAVTests(c);
 
             /*
