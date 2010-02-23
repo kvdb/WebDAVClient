@@ -1,5 +1,5 @@
 ﻿/*
- * (C) 2009 Kees van den Broek: kvdb@kvdb.net
+ * (C) 2010 Kees van den Broek: kvdb@kvdb.net
  *          D-centralize: d-centralize.nl
  *          
  * Latest version and examples on: http://kvdb.net/projects/webdav
@@ -15,6 +15,11 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Xml;
+/*
+// If you want to disable SSL certificate validation
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+*/
 
 namespace net.kvdb.webdav
 {
@@ -62,11 +67,11 @@ namespace net.kvdb.webdav
                 basePath = "/" + value + "/";
             }
         }
-        private int port = 80;
+        private int? port = null;
         /// <summary>
-        /// Specify an port (default: 80)
+        /// Specify an port (default: null = auto-detect)
         /// </summary>
-        public int Port
+        public int? Port
         {
             get { return port; }
             set { port = value; }
@@ -101,11 +106,18 @@ namespace net.kvdb.webdav
             String completePath = basePath;
             if (path != null)
             {
-                completePath += path.Trim('/');
+            	completePath += path.Trim('/');
             }
-            if (appendTrailingSlash) { completePath += '/'; }
 
-            return new Uri(server + ":" + port + completePath);
+            if (appendTrailingSlash && completePath.EndsWith("/") == false) { completePath += '/'; }
+
+            if(port.HasValue) {
+				return new Uri(server + ":" + port + completePath);
+            }
+            else {
+            	return new Uri(server + completePath);
+            }
+            
         }
         #endregion
 
@@ -172,7 +184,6 @@ namespace net.kvdb.webdav
                 {
                     XmlDocument xml = new XmlDocument();
                     xml.Load(stream);
-
                     XmlNamespaceManager xmlNsManager = new XmlNamespaceManager(xml.NameTable);
                     xmlNsManager.AddNamespace("d", "DAV:");
 
@@ -184,8 +195,8 @@ namespace net.kvdb.webdav
                         if (file.Length > 0)
                         {
                             // Want to see directory contents, not the directory itself.
-                            if (file[0] == remoteFilePath) { continue; }
-                            files.Add(file[0]);
+                            if (file[file.Length-1] == remoteFilePath || file[file.Length-1] == server) { continue; }
+                            files.Add(file[file.Length-1]);
                         }
                     }
                 }
@@ -297,6 +308,7 @@ namespace net.kvdb.webdav
         {
             // Should not have a trailing slash.
             Uri dirUri = getServerUrl(remotePath, false);
+
             string method = WebRequestMethods.Http.MkCol.ToString();
 
             AsyncCallback callback = new AsyncCallback(FinishCreateDir);
@@ -379,7 +391,23 @@ namespace net.kvdb.webdav
         void HTTPRequest(Uri uri, string requestMethod, IDictionary<string, string> headers, byte[] content, string uploadFilePath, AsyncCallback callback, object state)
         {
             httpWebRequest = (HttpWebRequest)HttpWebRequest.Create(uri);
-
+			
+            /*
+             * The following line fixes an authentication problem explained here:
+             * http://www.devnewsgroups.net/dotnetframework/t9525-http-protocol-violation-long.aspx
+             */
+            System.Net.ServicePointManager.Expect100Continue = false;
+            
+            // If you want to disable SSL certificate validation
+            /*
+            System.Net.ServicePointManager.ServerCertificateValidationCallback +=
+            delegate(object sender, X509Certificate cert, X509Chain chain, SslPolicyErrors sslError)
+            {
+                    bool validationResult = true;
+                    return validationResult;
+            };
+            */
+        
             // The server may use authentication
             if (user != null && pass != null)
             {
@@ -397,7 +425,6 @@ namespace net.kvdb.webdav
                 httpWebRequest.PreAuthenticate = true;
             }
             httpWebRequest.Method = requestMethod;
-            httpWebRequest.ContentType = "text/xml";
 
             // Need to send along headers?
             if (headers != null)
@@ -421,6 +448,7 @@ namespace net.kvdb.webdav
                     // The request either contains actual content...
                     httpWebRequest.ContentLength = content.Length;
                     asyncState.content = content;
+                    httpWebRequest.ContentType = "text/xml";
                 }
                 else
                 {
